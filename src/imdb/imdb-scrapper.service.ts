@@ -67,10 +67,12 @@ export class IMDbScrapperService implements OnModuleInit, OnModuleDestroy {
     imdbId: string,
     language: string,
     getEpisodes: boolean = false,
-  ): Promise<IMDbItem | undefined> {
+): Promise<IMDbItem | undefined> {
+    const lang = language || 'en-AU';
+
     const url =
-      language != 'en'
-        ? `${this.baseUrl}/${language}/title/${imdbId}`
+      lang != 'en'
+        ? `${this.baseUrl}/${lang}/title/${imdbId}`
         : `${this.baseUrl}/title/${imdbId}`;
 
     const page = await this.browser.newPage().catch(async (error) => {
@@ -82,24 +84,24 @@ export class IMDbScrapperService implements OnModuleInit, OnModuleDestroy {
       return this.browser.newPage();
     });
     await page.setExtraHTTPHeaders({
-      'Accept-Language': language,
+      'Accept-Language': lang,
     });
-    await page.evaluateOnNewDocument((lang) => {
+    await page.evaluateOnNewDocument((browserLang) => {
       Object.defineProperty(navigator, 'language', {
         get() {
-          return language;
+          return browserLang;
         },
       });
       Object.defineProperty(navigator, 'languages', {
         get() {
-          return [language];
+          return [browserLang];
         },
       });
-    }, language);
-
+    }, lang);
+	
     try {
       await page
-        .goto(url, {
+        .goto(url, { waitUntil: 'domcontentloaded' })
           waitUntil: 'networkidle2',
         })
         .catch(async (error) => {
